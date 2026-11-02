@@ -1,0 +1,51 @@
+PID,Gender,Race,Birthdate,Date_of_diagnosis,Diagnosis,Death_date,Cause_of_death
+8,Male,Kenyan,07/01/1982,18/01/2013,Acute Heart disease,01/03/2017,HIV/AIDS
+42,Female,Senegalese,28/12/1988,24/07/2012,HIV/AIDS,18/09/2018,Pneumonia
+20,Male,Nigerian,19/01/1989,01/03/2010,Malaria,23/04/2020,Arthritis
+65,Female,Nigerian,04/06/1981,08/11/2014,Arthritis,30/12/2020,Digestive neoplasm
+62,Female,Nigerian,10/04/1981,28/06/2014,HIV/AIDS,11/05/2016,Tuberculosis
+42,Male,Nigerian,28/06/1980,06/09/2014,Endometriosis,17/12/2017,Acute abdominal pain
+15,Female,Ugandan,25/04/1982,03/11/2013,Diabetes,05/12/2021,Acute Heart disease
+18,Female,Nigerian,27/04/1988,24/05/2010,Malaria,29/01/2018,Digestive neoplasm
+43,Female,Kenyan,22/04/1980,15/06/2014,Arthritis,01/01/2021,Renal failure
+39,Male,Kenyan,10/12/1983,10/10/2014,Digestive neoplasm,06/12/2018,Stroke
+6,Female,Nigerian,09/08/1985,21/12/2010,Acute Heart disease,25/08/2020,Acute Heart disease
+1,Male,Nigerian,27/05/1986,18/04/2015,Acute Heart disease,12/08/2018,HIV/AIDS
+88,Female,Kenyan,24/07/1980,24/06/2015,Digestive neoplasm,01/10/2021,Renal failure
+31,Female,Senegalese,04/01/1984,16/02/2015,Asthma,16/04/2017,Malaria
+96,Male,Kenyan,17/02/1982,29/04/2013,Malaria,22/05/2020,Stroke
+68,Male,Nigerian,16/03/1984,19/02/2011,Renal failure,12/04/2017,Endometriosis
+85,Female,Ugandan,20/04/1982,17/01/2010,Acute abdominal pain,25/02/2021,Malaria
+43,Male,Kenyan,10/07/1985,25/02/2014,Acute abdominal pain,27/01/2020,HIV/AIDS
+93,Male,Ugandan,16/09/1989,31/01/2014,Arthritis,19/04/2018,Renal failure
+75,Male,Nigerian,11/03/1986,08/01/2011,Endometriosis,26/12/2018,Acute Heart disease
+28,Male,Nigerian,03/11/1981,19/07/2013,HIV/AIDS,17/05/2019,Diabetes
+69,Male,Senegalese,03/03/1981,21/02/2012,Malaria,07/05/2018,Endometriosis
+92,Female,Kenyan,30/11/1983,28/08/2014,Acute abdominal pain,01/09/2017,Arthritis
+74,Female,Senegalese,12/06/1989,26/10/2014,Malaria,12/08/2019,Acute Heart disease
+67,Male,Kenyan,08/04/1989,20/07/2014,Stroke,27/10/2016,Malaria
+74,Male,Nigerian,14/05/1985,02/10/2010,Endometriosis,15/09/2019,Renal failure
+11,Male,Ugandan,05/11/1982,13/11/2012,HIV/AIDS,19/10/2016,Tuberculosis
+4,Male,Ugandan,17/03/1987,24/02/2013,Endometriosis,29/11/2017,Renal failure
+37,Female,Kenyan,24/08/1985,25/06/2011,Malaria,21/06/2020,Acute abdominal pain
+50,Female,Nigerian,27/11/1989,24/07/2013,Acute Heart disease,10/03/2020,Stroke
+95,Female,Kenyan,16/11/1983,26/02/2015,Renal failure,24/10/2018,Acute abdominal pain
+95,Female,Nigerian,11/03/1987,24/01/2012,Arthritis,29/09/2019,Digestive neoplasm
+64,Female,Nigerian,04/03/1987,25/11/2014,Asthma,21/10/2017,Endometriosis
+32,Female,Ugandan,13/03/1985,21/01/2013,Diabetes,27/07/2018,Arthritis
+53,Female,Kenyan,30/05/1988,01/01/2012,Arthritis,04/05/2021,Renal failure
+67,Female,Nigerian,26/08/1980,25/03/2013,Tuberculosis,12/05/2018,Malaria
+86,Female,Ugandan,06/08/1983,03/07/2013,Endometriosis,04/09/2016,Arthritis
+56,Female,Kenyan,03/10/1989,22/05/2015,Renal failure,25/01/2019,Acute abdominal pain
+9,Female,Senegalese,13/11/1980,08/05/2012,Migraine,15/06/2019,Asthma
+71,Female,Kenyan,06/02/1987,20/10/2011,Migraine,26/09/2016,Arthritis
+84,Male,Senegalese,30/05/1980,26/01/2013,Arthritis,15/04/2017,Asthma
+39,Female,Senegalese,03/09/1982,26/11/2014,Diabetes,27/07/2020,Endometriosis
+19,Male,Nigerian,20/02/1989,23/05/2015,Arthritis,08/06/2018,Migraine
+26,Female,Ugandan,25/01/1990,05/12/2010,Acute Heart disease,08/02/2016,Tuberculosis
+4,Female,Nigerian,08/12/1990,18/06/2010,Malaria,12/03/2017,Malaria
+53,Male,Senegalese,28/10/1988,12/06/2012,Diabetes,28/01/2018,Endometriosis
+59,Male,Nigerian,05/10/1981,26/09/2014,Digestive neoplasm,31/01/2021,Pneumonia
+58,Female,Ugandan,10/12/1987,02/03/2015,Tuberculosis,25/11/2018,Diabetes
+90,Female,Senegalese,19/09/1988,08/03/2014,Diabetes,06/08/2016,HIV/AIDS
+43,Female,Ugandan,25/07/1985,26/12/2014,HIV/AIDS,12/02/2016,Digestive neoplasm
