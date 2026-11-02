@@ -385,7 +385,7 @@ ds.var(x = 'D$LAB_HDL', type = "split")
 #| label: workshop-15
 a<-ds.var(x = 'D$LAB_HDL', type = "split")[[1]]
 a
-b<-ds.var(x = 'D$LAB_HDL', type = "split")[[1]][[2,1]]
+b<-ds.var(x = 'D$LAB_HDL', type = "split")[[1]][[1,1]]
 b
 ```
 
@@ -566,6 +566,10 @@ ds.Boole(
   newobj = "GLUC.6.less")
 ```
 
+## Assignment
+
+Categorize BMI into 4 standard categories (find out on the thresholds)
+
 ```{r}
 # List remote objects
 ds.ls()
@@ -655,7 +659,7 @@ ds.histogram(x='D$LAB_HDL')
 #| label: workshop-33
 ds.scatterPlot(x="D$LAB_HDL", y="D$PM_BMI_CONTINUOUS")
 ```
-
+ # 
 
 ## Additional plotting help
 
@@ -668,6 +672,8 @@ Help commands are kept for interactive use and are not executed when rendering.
 ?ds.boxPlot
 ```
 
+## Assignmnet 
+Apply the fns above
 
 ## Correlation
 
@@ -678,16 +684,16 @@ ds.cor(x='D$PM_BMI_CONTINUOUS', y='D$LAB_HDL')
 
 
 # 9. Linear regression and prediction
+Estimate the relationship between dependent and independent variables (the outcome is a continuous)
 
-
-## Gaussian regression
+## Gaussian regression  
 
 ```{r}
 #| label: workshop-36
 ds.glm(formula = "D$LAB_HDL~D$PM_BMI_CONTINUOUS", 
        family="gaussian")
 ```
-
+Do the multiple LR
 
 ## Study-level meta-analysis of Gaussian regression
 
@@ -762,6 +768,7 @@ ds.scatterPlot('predicted.values', "residuals")
 ds.histogram("residuals")
 ```
 
+Check on the assumptions of Linear Regression analysis (Gaussian model)
 
 # 11. Logistic regression and meta-analysis
 
