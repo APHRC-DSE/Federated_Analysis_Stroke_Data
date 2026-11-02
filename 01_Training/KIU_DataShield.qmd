@@ -1,0 +1,895 @@
+---
+title: "DataSHIELD Federated Analysis Workshop"
+subtitle: "Complete Quarto conversion of the DSWB tables R script"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: false
+    code-tools: true
+execute:
+  echo: true
+  warning: true
+  message: true
+---
+
+
+# 1. Package setup
+
+The installation code checks for missing packages; packages that are already available are skipped. It is disabled by default during report rendering to avoid modifying the environment unexpectedly. Run it once interactively if needed.
+
+```{r}
+#| label: install-packages
+#| eval: false
+# =====================================================
+# INSTALL PACKAGES ONLY IF NOT ALREADY INSTALLED
+# =====================================================
+
+# Function to check and install CRAN packages
+install_if_missing <- function(pkg, repos = "https://cloud.r-project.org") {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    message("Installing: ", pkg)
+    install.packages(pkg, repos = repos)
+  } else {
+    message("Already installed: ", pkg)
+  }
+}
+
+# 1. CRAN packages
+cran_packages <- c(
+  "devtools",
+  "DSI",
+  "DSOpal",
+  "opalr",
+  "metafor",
+  "readr",
+  "knitr",
+  "kableExtra"
+)
+
+for (pkg in cran_packages) {
+  install_if_missing(pkg)
+}
+
+# 2. R-universe package
+install_if_missing(
+  "dsTidyverseClient",
+  repos = c(
+    "https://molgenis.r-universe.dev",
+    "https://cloud.r-project.org"
+  )
+)
+
+# 3. GitHub packages
+install_github_if_missing <- function(pkg, repo) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    message("Installing from GitHub: ", pkg)
+    
+    devtools::install_github(
+      repo,
+      upgrade = "never",
+      dependencies = NA
+    )
+  } else {
+    message("Already installed: ", pkg)
+  }
+}
+
+install_github_if_missing(
+  "dsBaseClient",
+  "datashield/dsBaseClient"
+)
+
+install_github_if_missing(
+  "dsOMOPClient",
+  "isglobal-brge/dsOMOPClient@2.7.1"
+)
+
+install_github_if_missing(
+  "dsOmicsClient",
+  "isglobal-brge/dsOmicsClient"
+)
+
+# 4. Verify installed packages
+all_packages <- c(
+  cran_packages,
+  "dsTidyverseClient",
+  "dsBaseClient",
+  "dsOMOPClient",
+  "dsOmicsClient"
+)
+
+installation_status <- data.frame(
+  Package = all_packages,
+  Installed = vapply(
+    all_packages,
+    requireNamespace,
+    logical(1),
+    quietly = TRUE
+  )
+)
+
+print(installation_status)
+
+```
+
+
+#| label: tbl-datashield-libraries
+#| echo: false
+#| message: false
+#| warning: false
+#| tbl-cap: "Overview of R Libraries Used in the DataSHIELD Workshop"
+
+# Install kableExtra if missing
+if (!requireNamespace("kableExtra", quietly = TRUE)) {
+  install.packages("kableExtra")
+}
+
+```{r}
+# Create the library description table
+
+libraries <- data.frame(
+  Library = c(
+    "DSI",
+    "DSOpal",
+    "opalr",
+    "dsBaseClient",
+    "dsTidyverseClient",
+    "dsOMOPClient",
+    "dsOmicsClient",
+    "metafor",
+    "devtools",
+    "readr",
+    "knitr"
+  ),
+
+  `Main role` = c(
+    "DataSHIELD Interface",
+    "Opal connection driver",
+    "Opal management and interaction",
+    "Core statistical analysis",
+    "Data manipulation",
+    "OMOP analysis",
+    "Omics analysis",
+    "Meta-analysis",
+    "Package development and installation",
+    "File import",
+    "Reporting"
+  ),
+
+  `Why it is necessary` = c(
+    "Provides a common interface for configuring and managing DataSHIELD connections.",
+    "Enables DataSHIELD to communicate with Opal servers.",
+    "Provides functions for interacting with Opal, including server and data management operations.",
+    "Provides client-side functions for descriptive statistics, transformations, regression, and other analyses.",
+    "Provides tidyverse-style operations for selecting, renaming, and manipulating remote data.",
+    "Supports analysis of data structured using the OMOP Common Data Model.",
+    "Supports distributed analysis of genomics and other omics data.",
+    "Combines statistical estimates from different studies or data sources.",
+    "Helps install R packages directly from GitHub.",
+    "Reads structured text files, such as CSV files.",
+    "Formats analysis outputs and tables for reports."
+  ),
+
+  check.names = FALSE
+)
+
+# Generate a formatted HTML table
+knitr::kable(
+  libraries,
+  format = "html",
+  escape = TRUE,
+  align = c("l", "l", "l")
+) |>
+  kableExtra::kable_styling(
+    bootstrap_options = c(
+      "striped",
+      "hover",
+      "condensed",
+      "responsive"
+    ),
+    full_width = TRUE,
+    position = "center",
+    font_size = 13
+  ) |>
+  kableExtra::row_spec(
+    0,
+    bold = TRUE,
+    color = "white",
+    background = "#1591A3"
+  ) |>
+  kableExtra::column_spec(
+    1,
+    bold = TRUE,
+    width = "3cm"
+  ) |>
+  kableExtra::column_spec(
+    2,
+    width = "5cm"
+  )
+
+
+```
+
+# 2. R environment
+
+
+## Load analysis libraries
+
+```{r}
+#| label: workshop-01
+# libraries to connect with Opal databases
+library(DSI)
+library(DSOpal)
+
+# DataSHIELD client libraries
+library(dsBaseClient)
+library(dsTidyverseClient)
+
+# Library to perform meta-analyses
+library(metafor)
+
+# Creating publication ready tables
+library(kableExtra)
+```
+
+
+## Inspect R session
+
+```{r}
+#| label: workshop-02
+devtools::session_info()
+```
+
+# 4. Connect to remote Opal servers
+
+
+## Configure Opal connections
+
+Credentials are read from environment variables. Configure them in your local `.Renviron` file (never commit that file).
+
+Set `DS_FRANCE_USER`, `DS_FRANCE_PASSWORD`, `DS_ISGLOBAL_USER`, and `DS_ISGLOBAL_PASSWORD` in your local environment before rendering.
+
+```{r}
+#| label: workshop-04
+builder <- DSI::newDSLoginBuilder()
+
+# Server 1: France 
+builder$append(
+  server = 'France', 
+  url = "https://opal-demo.obiba.org",
+  user = "administrator", 
+  password = "password",
+  table = "CNSIM.CNSIM1",
+  profile = "default"
+)
+
+# Server 2: Spain (ISGlobal)
+builder$append(
+  server = 'ISGlobal', 
+  url = "https://opal.isglobal.org/repo",
+  user = "invited", 
+  password = "12345678Aa@",
+  table = "CNSIM.CNSIM2",
+  profile = "rock-inma"
+)
+```
+
+
+## Log in and assign remote datasets
+
+```{r}
+#| label: workshop-05
+logindata <- builder$build()
+conns <- datashield.login(logins = logindata, assign = TRUE, symbol = "D")
+```
+
+
+
+# 5. Inspect remote datasets
+
+
+## List remote objects
+
+```{r}
+#| label: workshop-06
+ds.ls()
+```
+
+
+## Inspect object classes
+
+```{r}
+#| label: workshop-07
+ds.class(x = "D", datasources = conns)
+```
+
+
+## List columns
+
+```{r}
+#| label: workshop-08
+ds.colnames("D")
+```
+
+
+## Inspect dimensions
+
+```{r}
+#| label: workshop-09
+ds.dim(x="D")
+```
+
+
+
+```{r}
+datashield.logout(conns)
+```
+
+
+# 6. Descriptive statistics
+
+
+## Inspect HDL variable
+
+```{r}
+#| label: workshop-10
+ds.class(x='D$LAB_HDL')
+ds.length(x='D$LAB_HDL')
+ds.mean(x='D$LAB_HDL')
+```
+
+
+## Help: quantileMean
+
+Help commands are kept for interactive use and are not executed when rendering.
+```{r}
+#| label: workshop-11-optional
+#| eval: false
+?ds.quantileMean
+```
+
+
+## HDL quantile summaries
+
+```{r}
+#| label: workshop-12
+ds.quantileMean(x='D$LAB_HDL')
+
+ds.quantileMean(x='D$LAB_HDL', type = "split")
+```
+
+
+## Help: variance
+
+Help commands are kept for interactive use and are not executed when rendering.
+```{r}
+#| label: workshop-13-optional
+#| eval: false
+?ds.var
+```
+
+
+## Site-specific HDL variance
+
+```{r}
+#| label: workshop-14
+ds.var(x = 'D$LAB_HDL', type = "split")
+```
+
+
+## Extract variance components
+
+```{r}
+#| label: workshop-15
+a<-ds.var(x = 'D$LAB_HDL', type = "split")[[1]]
+a
+b<-ds.var(x = 'D$LAB_HDL', type = "split")[[1]][[2,1]]
+b
+```
+
+
+## Gender frequencies
+
+```{r}
+#| label: workshop-16
+ds.table("D$GENDER")
+```
+
+
+## Triglyceride and HDL summaries
+
+```{r}
+#| label: workshop-17
+ds.mean("D$LAB_TRIG")
+ds.var("D$LAB_TRIG")
+ds.quantileMean("D$LAB_HDL")
+```
+
+
+## Disease and gender frequencies
+
+```{r}
+#| label: workshop-18
+ds.table("D$GENDER")
+ds.table("D$DIS_CVA")
+ds.table("D$DIS_DIAB")
+```
+
+
+## Loop over variables
+
+```{r}
+#| label: workshop-19
+for (v in c("LAB_TRIG", "LAB_HDL")) {
+  print(ds.mean(paste0("D$", v)))
+}
+```
+
+
+# 7. Transformations and subsets
+
+
+## Log transformation
+
+```{r}
+#| label: workshop-20
+ds.ls()
+ds.log(x='D$LAB_HDL', newobj='HDL_log')
+ds.ls()
+ds.mean(x="HDL_log")
+ds.mean(x="D$LAB_HDL")
+```
+
+
+## Square-root transformation
+
+```{r}
+#| label: workshop-21
+ds.sqrt(x='D$LAB_HDL', newobj='HDL_sqrt')
+ds.ls()
+ds.mean(x="HDL_sqrt")
+ds.mean(x="D$LAB_HDL")
+```
+
+
+## Combine remote objects
+
+```{r}
+#| label: workshop-22
+ds.dataFrame(c("D", "HDL_sqrt", "HDL_log"), newobj = "D")
+ds.colnames("D")
+```
+
+
+## Inspect factor levels
+
+```{r}
+#| label: workshop-23
+# first find the column name you wish to refer to
+ds.colnames(x="D")
+# then check which levels you need to apply a boolean operator to:
+ds.levels(x="D$GENDER")
+# ?ds.dataFrameSubset  # interactive help
+```
+
+
+## Gender-based subsets
+
+```{r}
+#| label: workshop-24
+ds.dataFrameSubset(df.name = "D", V1.name = "D$GENDER", V2.name = "1", 
+                   Boolean.operator = "==", newobj = "CNSIM.subset.Males")
+ds.dataFrameSubset(df.name = "D", V1.name = "D$GENDER", V2.name = "0", 
+                   Boolean.operator = "==", newobj = "CNSIM.subset.Females")
+```
+
+
+## Complete-case dataset
+
+```{r}
+#| label: workshop-25
+ds.completeCases(x1="D",newobj="D_without_NA")
+```
+
+
+## BMI subset
+
+```{r}
+#| label: workshop-26
+ds.dataFrameSubset(df.name = "D",
+  V1.name = "D$PM_BMI_CONTINUOUS",
+  V2.name = "25",
+  Boolean.operator = ">=",
+  newobj = "subset.BMI.25.plus")
+```
+
+
+## Summarize BMI subset
+
+```{r}
+#| label: workshop-27
+ds.quantileMean(x="subset.BMI.25.plus$PM_BMI_CONTINUOUS", type = "split")
+
+ds.histogram(x="subset.BMI.25.plus$PM_BMI_CONTINUOUS")
+```
+
+
+```{r}
+#| label: workshop-27
+#| message: false
+#| warning: false
+
+# 1. Combined quantile summary across both servers
+ds.quantileMean(
+  x = "subset.BMI.25.plus$PM_BMI_CONTINUOUS",
+  type = "combine"
+)
+
+# 2. Combined histogram across both servers
+# Check whether your installed version supports type = "combine"
+if ("type" %in% names(formals(ds.histogram))) {
+
+  ds.histogram(
+    x = "subset.BMI.25.plus$PM_BMI_CONTINUOUS",
+    type = "combine"
+  )
+
+} else {
+
+  # Default histogram: may show separate server plots
+  ds.histogram(
+    x = "subset.BMI.25.plus$PM_BMI_CONTINUOUS"
+  )
+
+}
+```
+
+
+## Create Boolean indicators
+
+```{r}
+#| label: workshop-28
+ds.Boole(
+  V1 = "D$PM_BMI_CONTINUOUS",
+  V2 = "25",
+  Boolean.operator = ">=",
+  numeric.output = TRUE,
+  newobj = "BMI.25.plus")
+
+ds.Boole(
+  V1 = "D$LAB_GLUC_ADJUSTED",
+  V2 = "6",
+  Boolean.operator = "<",
+  numeric.output = TRUE,
+  newobj = "GLUC.6.less")
+```
+
+```{r}
+# List remote objects
+ds.ls()
+
+# Frequency of the BMI indicator
+ds.table("BMI.25.plus")
+
+# Frequency of the glucose indicator
+ds.table("GLUC.6.less")
+```
+
+
+## Combine indicators and create second subset
+
+The combined indicator ranges from 0 to 2. A value of 1 can arise from either one of the two conditions.
+
+```{r}
+#| label: workshop-29
+# ?ds.make  # interactive help 
+
+ds.make(toAssign = "BMI.25.plus+GLUC.6.less",
+        newobj = "BMI.25.plus_GLUC.6.less")
+
+# If BMI >= 25 and glucose < 6, then BMI.25.plus_GLUC.6.less=2
+# If BMI >= 25 and glucose >= 6, then BMI.25.plus_GLUC.6.less=1
+# If BMI < 25 and glucose < 6, then BMI.25.plus_GLUC.6.less=1
+# If BMI < 25 and glucose >= 6, then BMI.25.plus_GLUC.6.less=0
+
+ds.table(rvar= "BMI.25.plus_GLUC.6.less",
+         datasources = conns)
+
+ds.dataFrame(x=c("D", "BMI.25.plus_GLUC.6.less"), newobj = "D2")
+
+ds.colnames("D2")
+
+ds.dataFrameSubset(df.name = "D2",
+  V1.name = "D2$BMI.25.plus_GLUC.6.less",
+  V2.name = "2",
+  Boolean.operator = "==",
+  newobj = "subset2")
+
+ds.dim("subset2")
+```
+
+
+## Select variables
+
+```{r}
+#| label: workshop-30
+ds.select(
+  df.name = "D",
+  tidy_expr = list(PM_BMI_CONTINUOUS, GENDER),
+  newobj = "df_subset")
+
+ds.colnames("df_subset")
+```
+
+
+## Rename variables
+
+```{r}
+#| label: workshop-31
+ds.rename(
+  df.name = "D",
+  tidy_expr = list(bmi = PM_BMI_CONTINUOUS, sex = GENDER),
+  newobj = "df_rename")
+
+ds.colnames("df_rename")
+```
+
+
+# 8. Visualizations and correlations
+
+
+## HDL histogram
+
+```{r}
+#| label: workshop-32
+# ?ds.histogram  # interactive help
+ds.histogram(x='D$LAB_HDL')
+```
+
+
+## HDL–BMI scatterplot
+
+```{r}
+#| label: workshop-33
+ds.scatterPlot(x="D$LAB_HDL", y="D$PM_BMI_CONTINUOUS")
+```
+
+
+## Additional plotting help
+
+Help commands are kept for interactive use and are not executed when rendering.
+```{r}
+#| label: workshop-34-optional
+#| eval: false
+?ds.heatmapPlot
+?ds.contourPlot
+?ds.boxPlot
+```
+
+
+## Correlation
+
+```{r}
+#| label: workshop-35
+ds.cor(x='D$PM_BMI_CONTINUOUS', y='D$LAB_HDL')
+```
+
+
+# 9. Linear regression and prediction
+
+
+## Gaussian regression
+
+```{r}
+#| label: workshop-36
+ds.glm(formula = "D$LAB_HDL~D$PM_BMI_CONTINUOUS", 
+       family="gaussian")
+```
+
+
+## Study-level meta-analysis of Gaussian regression
+
+```{r}
+#| label: workshop-37
+model1<-ds.glmSLMA(formula = "D$LAB_HDL~D$PM_BMI_CONTINUOUS", family="gaussian", 
+           newobj = "workshop.obj")
+model1
+```
+
+
+
+## Predict fitted values
+
+```{r}
+#| label: workshop-38
+ds.glmPredict(glmname = "workshop.obj", newobj = "workshop.prediction.obj")
+ds.length("workshop.prediction.obj$fit", datasources=conns)
+ds.length("D$LAB_HDL", datasources=conns)
+```
+
+
+## Prepare complete-case variables
+
+```{r}
+#| label: workshop-39
+ds.cbind(c('D$LAB_HDL', 'D$PM_BMI_CONTINUOUS'), newobj='vars')
+ds.completeCases('vars', newobj='vars.complete')
+ds.dim('vars.complete')
+```
+
+
+## Plot observations and fitted lines
+
+This reproduces the original plotting commands. Check disclosure rules before requesting or publishing returned coordinates.
+
+```{r}
+#| label: workshop-40
+df1 <- ds.scatterPlot('D$PM_BMI_CONTINUOUS', "D$LAB_HDL", return.coords = TRUE)
+df2 <- ds.scatterPlot('vars.complete$PM_BMI_CONTINUOUS', "workshop.prediction.obj$fit", 
+                      return.coords = TRUE)
+# then in native R
+par(mfrow=c(2,2))
+plot(as.data.frame(df1[[1]][[1]])$x,
+     as.data.frame(df1[[1]][[1]])$y, xlab='Body Mass Index', ylab='HDL Cholesterol', main='Study 1')
+lines(as.data.frame(df2[[1]][[1]])$x,as.data.frame(df2[[1]][[1]])$y, col='red')
+plot(as.data.frame(df1[[1]][[2]])$x,as.data.frame(df1[[1]][[2]])$y, 
+     xlab='Body Mass Index', ylab='HDL Cholesterol', main='Study 2')
+lines(as.data.frame(df2[[1]][[2]])$x,as.data.frame(df2[[1]][[2]])$y, col='red')
+```
+
+
+# 10. Model diagnostics
+
+
+## Residual diagnostics
+
+These are the original pooled-model residual calculations. Confirm model assumptions and coefficient extraction against the installed package version.
+
+```{r}
+#| label: workshop-41
+glmslma <- ds.glmSLMA(formula = "vars.complete$LAB_HDL~vars.complete$PM_BMI_CONTINUOUS", family="gaussian", newobj = "workshop.obj")
+
+ds.make(toAssign=paste0("(",glmslma$SLMA.pooled.ests.matrix[1,1],")+(", glmslma$SLMA.pooled.ests.matrix[2,1],"*vars.complete$PM_BMI_CONTINUOUS)"), 
+        newobj = "predicted.values")
+
+ds.make(toAssign = "vars.complete$LAB_HDL - predicted.values", 
+        newobj = "residuals")
+
+# and you can use those to run regression plot diagnostics  
+ds.scatterPlot('predicted.values', "residuals")
+ds.histogram("residuals")
+```
+
+
+# 11. Logistic regression and meta-analysis
+
+
+## Diabetes frequencies
+
+```{r}
+#| label: workshop-42
+ds.table("D$DIS_DIAB")
+```
+
+
+## Inspect diabetes class
+
+```{r}
+#| label: workshop-43
+ds.class("D$DIS_DIAB")
+```
+
+
+## Logistic regression by study
+
+```{r}
+#| label: workshop-44
+glmSLMA_mod2<-ds.glmSLMA(formula="D$DIS_DIAB~D$PM_BMI_CONTINUOUS", family='binomial')
+glmSLMA_mod2
+```
+
+
+## Extract effect estimates and standard errors
+
+```{r}
+#| label: workshop-45
+estimates <- c(glmSLMA_mod2$betamatrix.valid[2,])
+se <- c(glmSLMA_mod2$sematrix.valid[2,])
+```
+
+
+## Random-effects meta-analysis
+
+```{r}
+#| label: workshop-46
+res <- rma(estimates, sei=se)
+```
+
+
+## Basic forest plot
+
+```{r}
+#| label: workshop-47
+forest(res, atransf=exp)
+```
+
+
+## Annotated forest plot
+
+The original plot assumes two studies and fixed annotation positions; adjust if the server results differ.
+
+```{r}
+#| label: workshop-48
+study_names <- c("France", "Spain")
+weights <-  c(paste0(formatC(weights(res), format="f", digits=1, width=4), "%"))
+
+forest(res, atransf=exp,
+       xlab="Crude Odds Ratio", refline=log(1), xlim=c(-0.25,0.5), 
+       at=log(c(0.95, 1, 1.1, 1.2, 1.3)),
+       slab=cbind(paste0(study_names, " (", paste0(weights, ")"))), 
+       mlab="RE model")
+text(0.5, 4.5, pos=2, "Odds Ratio [95% CI]")
+text(-0.25, 4.5, pos=4, "Study (weight)")
+```
+
+
+## Multivariable pooled logistic regression
+
+```{r}
+#| label: workshop-49
+glm_mod1<-ds.glm(formula="D$DIS_DIAB~D$PM_BMI_CONTINUOUS+D$LAB_HDL*D$GENDER", family='binomial')
+```
+
+
+## Multivariable study-level logistic regression
+
+```{r}
+#| label: workshop-50
+glmSLMA_mod2<-ds.glmSLMA(formula="D$DIS_DIAB~D$PM_BMI_CONTINUOUS+D$LAB_HDL*D$GENDER", family='binomial')
+```
+
+
+## Compare model coefficients
+
+```{r}
+#| label: workshop-51
+glm_mod1$coefficients
+glmSLMA_mod2$SLMA.pooled.ests.matrix
+```
+
+
+# 12. Workspace and logout
+
+
+## Optional workspace save
+
+```{r}
+#| label: workshop-52-optional
+#| eval: false
+# datashield.workspace_save(conns = conns, ws = "workspace2025")
+```
+
+
+## Log out
+
+```{r}
+#| label: workshop-53
+datashield.logout(conns)
+```
+
+
+## Optional restore workspace
+
+```{r}
+#| label: workshop-54-optional
+#| eval: false
+# conns <- datashield.login(logins = logindata,
+#                           assign = TRUE, symbol = "D")
+# ds.ls()
+# datashield.logout(conns)
+# 
+# conns <- datashield.login(logins = logindata, restore = "workspace2025")
+# ds.ls()
+```
