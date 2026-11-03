@@ -1,0 +1,86 @@
+---
+title: "DataSHIELD_Resources"
+format: html
+editor: visual
+---
+
+## What is a DataSHIELD Resource
+
+Resources are credential-secured datasets or compute nodes accessed via a URL. In an R/DataSHIELD session, they give analysts secure access to remote big data and high-performance computing.
+
+see <https://opaldoc.obiba.org/en/latest/cookbook/import-data/resources.html#step-3-use-the-resources>.
+
+## Supported Resources
+
+- Base Resources
+- OMOP CDM Databases
+- ODBC Resources
+- S3 buckets
+
+## Example under Base Resource
+
+### Setup a csv file on github as resource
+
+- Login to the server
+
+```{r}
+library(DSOpal)
+library(dsBaseClient)
+
+# prepare login data and resources to assign
+builder <- DSI::newDSLoginBuilder()
+builder$append(server = "study1", url = "https://opal-demo.obiba.org",
+               user = "dsuser", password = "P@ssw0rd",
+               resource = "KIU.hdssdata", profile = "default")
+
+
+logindata <- builder$build()
+
+```
+
+- login and assign resources
+
+```{r}
+
+conns <- datashield.login(logins = logindata, assign = TRUE, symbol = "res")
+
+```
+
+- Examine class of the resource object
+
+```{r}
+# assigned objects are of class ResourceClient (and others)
+ds.class("res")
+```
+
+- coerce ResourceClient objects to data.frames
+
+```{r}
+
+datashield.assign.expr(conns, symbol = "D",
+                       expr = quote(as.resource.data.frame(res, strict = TRUE)))
+ds.class("D")
+
+```
+
+- List Columns if tabular data
+
+```{r}
+
+ds.colnames("D")
+```
+
+- do usual dsBase analysis
+
+```{r}
+
+#Gender Proportions
+
+```
+
+```{r}
+#Race Distribution
+
+```
+
+### Setup OMOP CDM database as resource
