@@ -31,7 +31,7 @@ library(dsBaseClient)
 builder <- DSI::newDSLoginBuilder()
 builder$append(server = "study1", url = "https://opal-demo.obiba.org",
                user = "dsuser", password = "P@ssw0rd",
-               resource = "KIU.hdssdata", profile = "default")
+               resource = "KIU.KIU-TEST", profile = "default")
 
 
 logindata <- builder$build()
@@ -82,5 +82,74 @@ ds.colnames("D")
 #Race Distribution
 
 ```
+
+### Additional exercise with resources
+
+- login to servers
+
+```{r}
+library(DSOpal)
+library(dsBaseClient)
+
+# prepare login data and resources to assign
+builder <- DSI::newDSLoginBuilder()
+builder$append(server = "study1", url = "https://opal-demo.obiba.org",
+               user = "dsuser", password = "P@ssw0rd",
+               resource = "RSRC.CNSIM1", profile = "default")
+builder$append(server = "study2", url = "https://opal.isglobal.org/repo",
+               user = "invited", password = "12345678Aa@",
+               resource = "CNSIM.CNSIM2", profile = "rock-inma")
+
+logindata <- builder$build()
+```
+
+```{r}
+# login and assign resources
+conns <- datashield.login(logins = logindata, assign = TRUE, symbol = "res")
+```
+
+```{r}
+# assigned objects are of class ResourceClient (and others)
+ds.class("res")
+
+```
+
+```{r}
+# coerce ResourceClient objects to data.frames
+# (DataSHIELD config allows as.resource.data.frame() assignment function for the purpose of the demo)
+datashield.assign.expr(conns, symbol = "D",
+                       expr = quote(as.resource.data.frame(res, strict = TRUE)))
+ds.class("D")
+```
+
+
+```{r}
+ds.colnames("D")
+
+```
+
+- do usual dsBase analysis
+
+```{r}
+
+ds.summary('D$LAB_HDL')
+
+# vector types are not necessarily the same depending on the data reader that was used
+ds.class('D$GENDER')
+ds.asFactor('D$GENDER', 'GENDER')
+ds.summary('GENDER')
+
+```
+
+```{r}
+mod <- ds.glm("DIS_DIAB ~ LAB_TRIG + GENDER", data = "D" , family="binomial")
+mod$coeff
+
+```
+
+```{r}
+datashield.logout(conns)
+```
+
 
 ### Setup OMOP CDM database as resource
